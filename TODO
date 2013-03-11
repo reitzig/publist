@@ -1,0 +1,39 @@
+* (DONE) Externalise sanitise function
+
+  - sanitise.php: if exists, import "sanitise" function from it. If not,
+    use identity function.
+  - sample_sanitise.php: include this sample sanitise function. Move to
+    "sanitise.php" to use.
+    
+* (DONE) Automatically detect lang.
+
+* In function ConnectTo (syntax.php), make special pattern not to collide
+  with perl regular expressions characters "[", "]", "|".
+  
+    - This way, more powerful regular expressions can be used in options, like
+      "only:year=200[789]"
+    - Parsing is simplified: no substitute "," with "|".
+    
+* Stronger special pattern parsing in function "handle" (syntax.php)
+
+  - Better format checking. Is "only:year" ok? Is "group:year=2005" ok?
+  
+* Completely change special pattern format to something like:
+
+	"option1='value1';option2='value2';..."
+	E.g. {bibtex_type='file';bibtex_source=':mybibtex';group='year';
+	      only='year=200[456];entrytype=book'}
+
+	- any order, blanks allowed, etc.
+	
+* Configurable global defaults: sort order, sort field, ...
+
+  - Maybe in configuration interface
+  - Maybe in conf.php file
+  
+* Configuration interface
+
+  - Global defaults
+  - sanitiser function/file selection
+  - Default bibtex
+  - Default template

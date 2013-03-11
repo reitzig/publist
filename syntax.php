@@ -28,7 +28,6 @@ class syntax_plugin_publist extends DokuWiki_Syntax_Plugin {
         return 105;
     }
 
-
     function connectTo($mode) {
         $this->Lexer->addSpecialPattern('\[publist\|.+?\]',$mode,'plugin_publist');
     }
@@ -45,32 +44,41 @@ class syntax_plugin_publist extends DokuWiki_Syntax_Plugin {
         else {
             $data['bibtex'] = array('type' => $matches[1], 'ref' => $matches[2]);
             $data['template'] = array('target' => $matches[3], 'type' => $matches[4], 'ref' => $matches[5]);
-
             $data['options'] = array();
+      
+            // Set default language. Get current lang from translation plugin
+            // if installed & enabled or fall back to default lang in conf.
+            if (!plugin_isdisabled('translation')) {
+                $trans =& plugin_load('helper', 'translation');
+                global $ID;
+                $mylang = $trans->getLangPart($ID);
+            } else {
+                global $conf;
+                $mylang = $conf['lang'];
+            }
+            $data['options']['lang'] = $mylang;
+            
             if ( !empty($matches[6]) ) {
                $matches = explode('|', $matches[6]);
                foreach ( $matches as $opt ) {
                  $optparts = array();
                  if ( preg_match('/(.+?):(.+)/', $opt, $optparts) ) {
                     $optparts[2] = explode(';', $optparts[2]);
-                    if ( count($optparts[2]) == 1 ) {
-                        $optparts[2] = $optparts[2][0];
-                    }
-                    else {
-                        // For complicated options like 'only', we have to explode deeper
-                        $option = array();
-                        foreach ( $optparts[2] as $single ) {
-                           $single = explode('=', $single);
-                           $option[$single[0]] = str_replace(',', '|', $single[1]);
+                    $option = array();
+                    foreach ( $optparts[2] as $single ) {
+                        $single = explode('=', $single);
+                        if (count($single) == 1 && count($optparts[2]) == 1) {
+                            $option = $single[0];
                         }
-                        $optparts[2] = $option;
+                        else {
+                            $option[$single[0]] = str_replace(',', '|', $single[1]);
+                        }
                     }
-                    $data['options'][$optparts[1]] = $optparts[2];
+                    $data['options'][$optparts[1]] = $option;
                  }
                }
             }
         }
-        
         return $data;
     }
 
@@ -89,10 +97,16 @@ class syntax_plugin_publist extends DokuWiki_Syntax_Plugin {
             if ( empty($template) ) {
                 $data['error'] .= $data['template']['type'].' '.$data['template']['ref'].' does not exist<br />';
             }
-            
+
             if ( !empty($bibtex) && !empty($template) ) {
                 require_once(dirname(__FILE__).'/bib2tpl/bibtex_converter.php');
-                $parser = new BibtexConverter($data['options']);
+                if ( is_readable(dirname(__FILE__).'/sanitiser.php')) {
+                    include(dirname(__FILE__).'/sanitiser.php');
+                }
+                if ( empty($sanitiser) ) {
+                   $sanitiser = create_function('$i', 'return $i;');
+                }
+                $parser = new BibtexConverter($data['options'],$sanitiser);
                 $code = $parser->convert($bibtex, $template);
                 
                 if ( $data['template']['target'] == 'wiki' ) {
@@ -106,9 +120,9 @@ class syntax_plugin_publist extends DokuWiki_Syntax_Plugin {
         if ( !empty($data['error']) ) {
             $renderer->doc .= $data['error'];
         }
-       
+
         $renderer->info['cache'] = false;
-        
+
         return true;
     }
 

@@ -1,0 +1,14 @@
+version: 2.0-publist1
+date: 2013-03-12
+
+  * Added Spanish (es) language file.
+  * Change e2mn method in helper.inc.php to use the month name in the
+    languge file as a pattern. This way, month sorting can be done correctly
+    when e.g. month names are in English but output language is Spanish, or
+    when months in the bibtex use abreviations; if the language file includes
+    months defininitons like:
+        '01' => 'enero|ene|january|jan'
+  * Language files (en, de, es) updated to add month names alternatives
+    through patterns: short forms and English alternatives.
+
+ -- Jorge Juan <jjchico@gmail.com>

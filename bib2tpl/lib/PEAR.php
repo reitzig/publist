@@ -1,4 +1,8 @@
 <?php
+ // Note: Commented out inclusion of PEAR5 as we do this caller-site
+?>
+
+<?php
 /**
  * PEAR, the PHP Extension and Application Repository
  *
@@ -727,7 +731,7 @@ class PEAR
 }
 
 if (PEAR_ZE2) {
-    include_once 'PEAR5.php';
+    //include_once 'PEAR5.php';
 }
 
 function _PEAR_call_destructors()

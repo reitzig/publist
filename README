@@ -1,0 +1,19 @@
+publist Plugin for DokuWiki
+
+Includes the content of BibTeX files in DokuWiki pages in a flexible way.
+
+All documentation for this plugin can be found at
+https://www.dokuwiki.org/plugin:publist
+
+If you install this plugin manually, make sure it is installed in
+lib/plugins/publist/ - if the folder is called different it
+will not work!
+
+Please refer to https://www.dokuwiki.org/plugins for additional info
+on how to install plugins in DokuWiki.
+
+----
+Copyright (C) 2010 Raphael Reitzig <code@verrech.net>
+Copyright (C) 2013 Jorge Juan <jjchico@gmail.com>
+
+See COPYING and file headers for license info.

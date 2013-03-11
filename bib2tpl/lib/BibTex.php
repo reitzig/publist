@@ -1,10 +1,17 @@
 <?php
   /**
-   * The following changes have been made by Raphael Reitzig, 2010:
+   * The following changes have been made by Raphael Reitzig, 2010-2012:
    * - fixed spelling (l184)
    * - added source bibtex to entry in data array (l380)
    * - added entry key to entry in data array if present (l394 ff)
    * - fixed brace removal (l893)
+   * - removed inclusion of PEAR.PHP as we handle this caller-site
+   * - applied patch from http://pear.php.net/bugs/bug.php?id=14442
+   * - Fixed bug in l398: entry keys could previously contain only letters and
+   *                      digits; everything is allowed now.
+   * - Fixed parsing of authors (comma-less version was broken)
+   * - Added printable and comparable variants to author arrays
+   * - Added printable and comparable variants of authors to entries
    */
 
   /**
@@ -30,7 +37,7 @@
    * @link       http://pear.php.net/package/Structures_BibTex
    */
 
-require_once 'PEAR.php' ;
+//require_once('PEAR.php');
 /**
  * Structures_BibTex
  *
@@ -393,7 +400,7 @@ class Structures_BibTex
         } else {
             // Look for key
             $matches = array();
-            preg_match('/^@\w+\{([\w\d]+),/' ,$entry, $matches);
+            preg_match('/^@\w+\{(.+?),/' ,$entry, $matches);
             if ( count($matches) > 0 )
             {
               $ret['entrykey'] = $matches[1];
@@ -460,6 +467,8 @@ class Structures_BibTex
             //Handling the authors
             if (in_array('author', array_keys($ret)) && $this->_options['extractAuthors']) {
                 $ret['author'] = $this->_extractAuthors($ret['author']);
+                $ret['niceauthor'] = join(', ', array_map(function ($a) { return $a['nice']; }, $ret['author']));
+                $ret['sortauthor'] = join('', array_map(function ($a) { return $a['sort']; }, $ret['author']));
             }
         }
         return $ret;
@@ -666,8 +675,7 @@ class Structures_BibTex
             $jr       = '';
             if (strpos($author, ',') === false) {
                 $tmparray = array();
-                //$tmparray = explode(' ', $author);
-                $tmparray = explode(' |~', $author);
+                $tmparray = preg_split('/\s+/', $author);
                 $size     = sizeof($tmparray);
                 if (1 == $size) { //There is only a last
                     $last = $tmparray[0];
@@ -770,6 +778,8 @@ class Structures_BibTex
                 $first = $tmparray[sizeof($tmparray)-1];
             }
             $authorarray[$i] = array('first'=>trim($first), 'von'=>trim($von), 'last'=>trim($last), 'jr'=>trim($jr));
+            $authorarray[$i]['nice'] = join(' ', array_filter($authorarray[$i]));
+            $authorarray[$i]['sort'] = strtolower(trim($last).trim($first));
         }
         return $authorarray;
     }
@@ -873,8 +883,8 @@ class Structures_BibTex
     {
         //First we save the delimiters
         $beginningdels = array_keys($this->_delimiters);
-        $firstchar     = substr($entry, 0, 1);
-        $lastchar      = substr($entry, -1, 1);
+        $firstchar     = substr($value, 0, 1);
+        $lastchar      = substr($value, -1, 1);
         $begin         = '';
         $end           = '';
         while (in_array($firstchar, $beginningdels)) { //The first character is an opening delimiter

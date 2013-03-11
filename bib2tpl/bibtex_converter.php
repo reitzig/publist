@@ -1,194 +1,261 @@
 <?php
 /*
- * By Raphael Reitzig, 2010
+ * By Raphael Reitzig, 2012
+ * version 2.0
  * code@verrech.net
  * http://lmazy.verrech.net
- * 
- * This work is subject to Creative Commons
- * Attribution-NonCommercial-ShareAlike 3.0 Unported.
- * You are free:
- *     * to Share — to copy, distribute and transmit the work
- *     * to Remix — to adapt the work
- * Under the following conditions:
- *     * Attribution — You must attribute the work in the manner specified
- *       by the author or licensor (but not in any way that suggests that
- *       they endorse you or your use of the work).
- *     * Noncommercial — You may not use this work for commercial purposes.
- *     * Share Alike — If you alter, transform, or build upon this work,
- *       you may distribute the resulting work only under the same or similar
- *       license to this one.
- * With the understanding that:
- *     * Waiver — Any of the above conditions can be waived if you get
- *       permission from the copyright holder.
- *     * Public Domain — Where the work or any of its elements is in the
- *       public domain under applicable law, that status is in no way
- *       affected by the license.
- *     * Other Rights — In no way are any of the following rights affected
- *       by the license:
- *           o Your fair dealing or fair use rights, or other applicable
- *             copyright exceptions and limitations;
- *           o The author's moral rights;
- *           o Rights other persons may have either in the work itself or
- *             in how the work is used, such as publicity or privacy rights.
- *     * Notice — For any reuse or distribution, you must make clear to
- *       others the license terms of this work. The best way to do this is
- *       with a link to the web page given below.
- * 
- * Licence (short): http://creativecommons.org/licenses/by-nc-sa/3.0/
- * License (long): http://creativecommons.org/licenses/by-nc-sa/3.0/legalcode
+ */
+?>
+<?php
+/*
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 ?>
 <?php
 
-/* Use the slightly modified BibTex parser from PEAR. Adapt if
- * you rather want to use a properly installed PEAR package.
- */
-require('lib/BibTex.php');
+// Use the slightly modified BibTex parser from PEAR.
+require_once('lib/PEAR5.php');
+require_once('lib/PEAR.php');
+require_once('lib/BibTex.php');
 
 // Some stupid functions
-require('helper.inc.php');
+require_once('helper.inc.php');
 
 /**
- * This class provides a methods that parse bibtex files to
+ * This class provides a method that parses bibtex files to
  * other text formats based on a template language. See
  *   http://lmazy.verrech.net/bib2tpl/
  * for documentation.
  *
  * @author Raphael Reitzig
- * @version 1.0
+ * @version 2.0
  */
-class BibtexConverter
-{
+class BibtexConverter {
   /**
    * BibTex parser
    *
    * @access private
    * @var Structures_BibTex
    */
-  var $_parser;
+  private static $parser;
 
   /**
    * Options array. May contain the following pairs:
-   *   only  => array(['author' => regexp],['type' => regexp])
-   *   group => (none|year|firstauthor|entrytype)
+   *   only  => array([$field => $regexp], ...)
+   *   group => (none|firstauthor|entrytype|$field)
+   *   order_groups => (asc|desc)
+   *   sort_by => (DATE|$field)
    *   order => (asc|desc)
+   *   lang => xy (where lang/xy.php exists)
    * @access private
    * @var array
    */
-  var $_options;
+  private $options;
+
+  /**
+   * Callback to a function that takes a string (taken from a
+   * BibTeX field) and clears it up for output.
+   * @access private
+   * @var callback
+   */
+  private $sanitise;
 
   /**
    * Helper object with support functions.
    * @access private
    * @var Helper
    */
-  var $_helper;
+  private $helper;
 
   /**
    * Constructor.
    *
    * @access public
-   * @param array options Options array. May contain the following pairs:
-   *   only  => array(['author' => /regexp/],['entrytype' => /regexp/])
-   *   group => (none|year|firstauthor|entrytype)
-   *   order => (asc|desc)
-   *   lang  => any string $s as long as proper lang/$s.php exists
-   * @return void
+   * @param array $options Options array. May contain the following pairs:
+   *                       - only  => array([$field => $regexp], ...)
+   *                       - group => (none|year|firstauthor|entrytype|$field)
+   *                       - order_groups => (asc|desc)
+   *                       - sort_by => (DATE|$field)
+   *                       - order => (asc|desc)
+   *                       - lang  => any string as long as proper lang/$s.php exists
+   *                       For details see documentation.
+   * @param callback $sanitise Callback to a function that takes a string (taken from a
+   *                           BibTeX field) and clears it up for output. Default is the
+   *                           identity function.
    */
-  function BibtexConverter($options=array())
-  {
-    $this->_parser = new Structures_BibTex(array('removeCurlyBraces' => true));
-
+  function __construct($options=array(), $sanitise=null) {
     // Default options
-    $this->_options = array(
+    $this->options = array(
       'only'  => array(),
       'group' => 'year',
+      'order_groups' => 'desc',
+      'sort_by' => 'DATE',
       'order' => 'desc',
       'lang' => 'en'
     );
 
-    // Overwrite specified options
-    foreach ( $this->_options as $key => $value )
-    {
-      $this->_options[$key] = $options[$key];
+    // lame replacement for non-constant default parameter
+    if ( !empty($sanitise) ) {
+      $this->sanitise = $sanitise;
+    }
+    else {
+      $this->sanitise = create_function('$i', 'return $i;');
+    }
+
+    // Overwrite default options
+    foreach ( $this->options as $key => $value ) {
+      if ( !empty($options[$key]) ) {
+        $this->options[$key] = $options[$key];
+      }
     }
 
     /* Load translations.
      * We assume that the english language file is always there.
      */
-    if ( is_readable(dirname(__FILE__).'/lang/'.$this->_options['lang'].'.php') )
-    {
-      require('lang/'.$this->_options['lang'].'.php');
+    if ( is_readable(dirname(__FILE__).'/lang/'.$this->options['lang'].'.php') ) {
+      require('lang/'.$this->options['lang'].'.php');
     }
-    else
-    {
+    else {
       require('lang/en.php');
     }
-    $this->_options['lang'] = $translations;
+    $this->options['lang'] = $translations;
 
-    $this->_helper = new Helper($this->_options);
+    $this->helper = new Helper($this->options);
   }
 
   /**
-   * Converts the given string in bibtex format to a string whose format
-   * is defined by the passed template string.
+   * Parses the specified BibTeX string into an array with entries of the form
+   * $entrykey => $entry. The result can be used with BibtexConverter::convert.
    *
    * @access public
-   * @param string bibtex Bibtex code
-   * @param string template template code
-   * @return mixed Result string or PEAR_Error on failure
+   * @param string $bibtex BibTeX code
+   * @return array Array with data from passed BibTeX
    */
-  function convert($bibtex, $template)
-  {
-    // TODO Eliminate LaTeX syntax
-    
-    $this->_parser->loadString($bibtex);
-    $stat = $this->_parser->parse();
+  static function parse(&$bibtex) {
+    if ( !isset(self::$parser) ) {
+      self::$parser = new Structures_BibTex(array('removeCurlyBraces' => false));
+    }
 
-    if ( !$stat ) {
+    self::$parser->loadString($bibtex);
+    $stat = self::$parser->parse();
+
+    if ( PEAR::isError($stat) ) {
       return $stat;
     }
 
-    $data = $this->_parser->data;
-    $data = $this->_filter($data);
-    $data = $this->_group($data);
-    $data = $this->_sort($data);
+    $parsed = self::$parser->data;
+    $result = array();
+    foreach ( $parsed as &$entry ) {
+      $result[$entry['entrykey']] = $entry;
+    }
 
-    return $this->_translate($data, $template);
+    return $result;
+  }
+
+  /**
+   * Parses the given BibTeX string and applies its data to the passed template string.
+   * If $bibtex is an array (which has to be parsed by BibtexConverter::parse)
+   * parsing is skipped.
+   *
+   * @access public
+   * @param string|array $bibtex BibTeX code or parsed array
+   * @param string       $template template code
+   * @param array  $replacementKeys An array with entries of the form $entrykey => $newKey.
+   *                                If an entrykey occurrs here, it will be replaced by
+   *                                its correspoding newKey in the output.
+   * @return string|PEAR_Error Result string or PEAR_Error on failure
+   */
+  function convert($bibtex, &$template, &$replacementKeys=array()) {
+    // If there are no grouping tags, disable grouping.
+    if ( preg_match('/@\{group@/s', $template) + preg_match('/@\}group@/s', $template) < 2 ) {
+      $groupingDisabled = $this->options['group'];
+      $this->options['group'] = 'none';
+    }
+
+    // If grouping is off, remove grouping tags.
+    if ( $this->options['group'] === 'none' ) {
+      $template = preg_replace(array('/@\{group@/s', '/@\}group@/s'), '', $template);
+    }
+
+    // Parse if necessary
+    if ( is_array($bibtex) ) {
+      $data = $bibtex;
+    }
+    else {
+      $data = self::parse($bibtex);
+    }
+
+    $data   = $this->filter($data, $replacementKeys);
+    $data   = $this->group($data);
+    $data   = $this->sort($data);
+    $result = $this->translate($data, $template);
+
+    /* If grouping was disabled because of the template, restore the former
+     * setting for future calls. */
+    if ( !empty($groupingDisabled) ) {
+      $this->options['group'] = $groupingDisabled;
+    }
+
+    return $result;
   }
 
   /**
    * This function filters data from the specified array that should
    * not be shown. Filter criteria are specified at object creation.
    *
-   * This function also adds values that are assumed to be existent
-   * later if they do not exist, namely <code>firstauthor = author[0]</code>,
-   * <code>year</code> and <code>month</code>.
-   * 
+   * Furthermore, entries whose entrytype is not translated in the specified
+   * language file are put into a distinct group.
+   *
    * @access private
    * @param array data Unfiltered data, that is array of entries
+   * @param replacementKeys An array with entries of the form $entrykey => $newKey.
+   *                        If an entrykey occurrs here, it will be replaced by
+   *                        its correspoding newKey in the output.
    * @return array Filtered data as array of entries
    */
-  function _filter($data)
-  {
+  private function filter(&$data, &$replacementKeys=array()) {
     $result = array();
 
     $id = 0;
     foreach ( $data as $entry ) {
-      if (    (   empty($this->_options['only']['author'])
-               || preg_match('/'.$this->_options['only']['author'].'/i',
-                             $this->_helper->niceAuthors($entry['author'])))
-           && (   empty($this->_options['only']['entrytype'])
-               || preg_match('/'.$this->_options['only']['entrytype'].'/i',
-                             $entry['entrytype'])) )
-      {
-        $entry['firstauthor'] = $entry['author'][0];
-        $entry['entryid'] = $id++;
-        $entry['year'] = empty($entry['year']) ? '0000' : $entry['year'];
-        if ( empty($this->_options['lang']['entrytypes'][$entry['entrytype']]) )
-        {
-          $entry['entrytype'] = $this->_options['lang']['entrytypes']['unknown'];
+      // Some additions/corrections
+      if ( empty($this->options['lang']['entrytypes'][$entry['entrytype']]) ) {
+        $entry['entrytype'] = $this->options['lang']['entrytypes']['unknown'];
+      }
+
+      // Check wether this entry should be included
+      $keep = true;
+      foreach ( $this->options['only'] as $field => $regexp ) {
+        if ( !empty($entry[$field]) ) {
+          $val =   $field === 'author'
+                 ? $entry['niceauthor']
+                 : $entry[$field];
+
+          $keep = $keep && preg_match('/'.$regexp.'/i', $val);
         }
+        else {
+          /* If the considered field does not even exist, consider this a fail.
+           * That enables to use $field => '.*' as existence check. */
+          $keep = false;
+        }
+      }
+
+      if ( $keep === true ) {
+        if ( !empty($replacementKeys[$entry['entrykey']]) ) {
+          $entry['entrykey'] = $replacementKeys[$entry['entrykey']];
+        }
+
         $result[] = $entry;
       }
     }
@@ -204,29 +271,35 @@ class BibtexConverter
    * @param array data An array of entries
    * @return array An array of arrays of entries
    */
-  function _group($data)
-  {
+  private function group(&$data) {
     $result = array();
 
-    if ( $this->_options['group'] !== 'none' )
-    {
-      foreach ( $data as $entry )
-      {
-        $target =   $this->_options['group'] === 'firstauthor'
-                  ? $this->_helper->niceAuthor($entry['firstauthor'])
-                  : $entry[$this->_options['group']];
+    if ( $this->options['group'] !== 'none' ) {
+      foreach ( $data as $entry ) {
+        if ( !empty($entry[$this->options['group']]) || $this->options['group'] === 'firstauthor' ) {
+          if ( $this->options['group'] === 'firstauthor' ) {
+            $target = $entry['author'][0]['nice'];
+          }
+          elseif ( $this->options['group'] === 'author' ) {
+            $target = $entry['niceauthor'];
+          }
+          else {
+            $target =  $entry[$this->options['group']];
+          }
+        }
+        else {
+          $target = $this->options['lang']['rest'];
+        }
 
-        if ( empty($result[$target]) )
-        {
+        if ( empty($result[$target]) ) {
           $result[$target] = array();
         }
 
         $result[$target][] = $entry;
       }
     }
-    else
-    {
-      $result[$this->_options['lang']['all']] = $data;
+    else {
+      $result[$this->options['lang']['all']] = $data;
     }
 
     return $result;
@@ -238,22 +311,19 @@ class BibtexConverter
    *
    * @access private
    * @param array data An array of arrays of entries
-   * @return array An array of arrays of entries
+   * @return array A sorted array of sorted arrays of entries
    */
-  function _sort(&$data)
-  {
+  private function sort($data) {
     // Sort groups if there are any
-    if ( $this->_options['group'] !== 'none' )
-    {
-      uksort($data, array($this->_helper, 'group_cmp')); 
+    if ( $this->options['group'] !== 'none' ) {
+      uksort($data, array($this->helper, 'group_cmp'));
     }
 
     // Sort individual groups
-    foreach ( $data as &$group )
-    {
-      uasort($group, array($this->_helper, 'entry_cmp')); 
+    foreach ( $data as &$group ) {
+      uasort($group, array($this->helper, 'entry_cmp'));
     }
-    
+
     return $data;
   }
 
@@ -266,29 +336,43 @@ class BibtexConverter
    * @param string template The used template
    * @return string The data represented in terms of the template
    */
-  function _translate($data, $template)
-  {
+  private function translate(&$data, &$template) {
     $result = $template;
 
     // Replace global values
-    $result = preg_replace('/@globalcount@/', $this->_helper->lcount($data, 2), $result);
-    $result = preg_replace('/@globalgroupcount@/', count($data), $result);
-    
-    $pattern = '/@\{group@(.*?)@\}group@/s';
+    $result = preg_replace(array('/@globalcount@/', '/@globalgroupcount@/'),
+                           array(Helper::lcount($data, 2), count($data)),
+                           $result);
 
-    // Extract group template
-    $group_tpl = array();
-    preg_match($pattern, $template, $group_tpl);
-    $group_tpl = $group_tpl[1];
+    if ( $this->options['group'] !== 'none' ) {
+      $pattern = '/@\{group@(.*?)@\}group@/s';
 
-    // Translate all groups
-    $groups = '';
-    foreach ( $data as $groupkey => $group )
-    {
-      $groups .= $this->_translate_group($groupkey, $group, $group_tpl);
+      // Extract group templates
+      $group_tpl = array();
+      preg_match($pattern, $result, $group_tpl);
+
+      // For all occurrences of an group template
+      while ( !empty($group_tpl) ) {
+        // Translate all groups
+        $groups = '';
+        $id = 0;
+        foreach ( $data as $groupkey => $group ) {
+          $groups .= $this->translate_group($groupkey, $id++, $group, $group_tpl[1]);
+        }
+
+        $result = preg_replace($pattern, $groups, $result, 1);
+        preg_match($pattern, $result, $group_tpl);
+      }
+
+      return $result;
     }
-
-    return preg_replace($pattern, $groups, $result);
+    else {
+      $groups = '';
+      foreach ( $data as $groupkey => $group ) { // loop will only be run once
+        $groups .= $this->translate_group($groupkey, 0, $group, $template);
+      }
+      return $groups;
+    }
   }
 
   /**
@@ -296,71 +380,71 @@ class BibtexConverter
    *
    * @access private
    * @param string key The rendered group's key
+   * @param int id A unique ID for this group
    * @param array data Array of entries in this group
    * @param string template The group part of the template
    * @return string String representing the passed group wrt template
    */
-  function _translate_group($key, $data, $template)
-  {
+  private function translate_group($key, $id, &$data, $template) {
     $result = $template;
 
     // Replace group values
-    if ( is_array($key) )
-    {
-      $key = $this->_helper->niceAuthor($key);
+    if ( $this->options['group'] === 'entrytype' ) {
+      $key = $this->options['lang']['entrytypes'][$key];
     }
-    elseif ( $this->_options['group'] === 'entrytype' )
-    {
-      $key = $this->_options['lang']['entrytypes'][$key];
-    }
-    $result = preg_replace('/@groupkey@/', $key, $result);
-    $result = preg_replace('/@groupid@/', md5($key), $result);
-    $result = preg_replace('/@groupcount@/', count($data), $result);
-    
+    $result = preg_replace(array('/@groupkey@/', '/@groupid@/', '/@groupcount@/'),
+                           array($key, $id, count($data)),
+                           $result);
+
     $pattern = '/@\{entry@(.*?)@\}entry@/s';
 
-    // Extract entry template
+    // Extract entry templates
     $entry_tpl = array();
-    preg_match($pattern, $template, $entry_tpl);
-    $entry_tpl = $entry_tpl[1];
+    preg_match($pattern, $result, $entry_tpl);
 
-    // Translate all entries
-    $entries = '';
-    foreach ( $data as $entry )
-    {
-      $entries .= $this->_translate_entry($entry, $entry_tpl);
+    // For all occurrences of an entry template
+    while ( !empty($entry_tpl) ) {
+      // Translate all entries
+      $entries = '';
+      foreach ( $data as $entry ) {
+        $entries .= $this->translate_entry($entry, $entry_tpl[1]);
+      }
+
+      $result = preg_replace($pattern, $entries, $result, 1);
+      preg_match($pattern, $result, $entry_tpl);
     }
 
-    return preg_replace($pattern, $entries, $result);
+    return $result;
   }
 
   /**
-   * This function translates one entry 
+   * This function translates one entry
    *
    * @access private
    * @param array entry Array of fields
    * @param string template The entry part of the template
    * @return string String representing the passed entry wrt template
    */
-  function _translate_entry($entry, $template)
-  {
+  private function translate_entry(&$entry, $template) {
     $result = $template;
 
     // Resolve all conditions
-    $result = $this->_resolve_conditions($entry, $result);
+    $result = $this->resolve_conditions($entry, $result);
 
     // Replace all possible unconditional fields
-    foreach ( $entry as $key => $value )
-    {
-      if ( is_array($value) )
-      {
-        $value = $this->_helper->niceAuthors($value);
+    $patterns = array();
+    $replacements = array();
+
+    foreach ( $entry as $key => $value ) {
+      if ( $key === 'author' ) {
+        $value = $entry['niceauthor'];
       }
-      
-      $result = preg_replace('/@'.$key.'@/', $value, $result);
+
+      $patterns []= '/@'.$key.'@/';
+      $replacements []= call_user_func($this->sanitise, $value);
     }
 
-    return $result;
+    return preg_replace($patterns, $replacements, $result);
   }
 
   /**
@@ -372,11 +456,16 @@ class BibtexConverter
    * @param string template The entry part of the template.
    * @return string Template string without conditions.
    */
-  function _resolve_conditions($entry, $string) {
-    $pattern = '/@\?(\w+?)@(.*?)(@:\1@(.*?)){0,1}@;\1@/s';
-    /* Group 1: field
-     * Group 2: then
-     *[Group 4: else]
+  private function resolve_conditions(&$entry, &$string) {
+    $pattern = '/@\?(\w+)(?:(<=|>=|==|!=|~)(.*?))?@(.*?)(?:@:\1@(.*?))?@;\1@/s';
+    /* There are two possibilities for mode: existential or value check
+     * Then, there can be an else part or not.
+     *          Existential       Value Check      RegExp
+     * Group 1  field             field            \w+
+     * Group 2  then              operator         .*?  /  <=|>=|==|!=|~
+     * Group 3  [else]            value            .*?
+     * Group 4   ---              then             .*?
+     * Group 5   ---              [else]           .*?
      */
 
     $match = array();
@@ -389,18 +478,45 @@ class BibtexConverter
     while ( preg_match($pattern, $string, $match) )
     {
       $resolved = '';
-      if ( !empty($entry[$match[1]]) )
-      {
-        $resolved = $match[2];
+
+      $evalcond = !empty($entry[$match[1]]);
+      $then = count($match) > 3 ? 4 : 2;
+      $else = count($match) > 3 ? 5 : 3;
+
+      if ( $evalcond && count($match) > 3 ) {
+        if ( $match[2] === '==' ) {
+          $evalcond = $entry[$match[1]] === $match[3];
+        }
+        elseif ( $match[2] === '!=' ) {
+          $evalcond = $entry[$match[1]] !== $match[3];
+        }
+        elseif ( $match[2] === '<=' ) {
+          $evalcond =    is_numeric($entry[$match[1]])
+                      && is_numeric($match[3])
+                      && (int)$entry[$match[1]] <= (int)$match[3];
+        }
+        elseif ( $match[2] === '>=' ) {
+          $evalcond =    is_numeric($entry[$match[1]])
+                      && is_numeric($match[3])
+                      && (int)$entry[$match[1]] >= (int)$match[3];
+        }
+        elseif ( $match[2] === '~' ) {
+          $evalcond = preg_match('/'.$match[3].'/', $entry[$match[1]]) > 0;
+        }
       }
-      elseif ( !empty($match[4]) )
+
+      if ( $evalcond )
       {
-        $resolved = $match[4];
+        $resolved = $match[$then];
+      }
+      elseif ( !empty($match[$else]) )
+      {
+        $resolved = $match[$else];
       }
 
       // Recurse to cope with nested conditions
-      $resolved = $this->_resolve_conditions($entry, $resolved);
-      
+      $resolved = $this->resolve_conditions($entry, $resolved);
+
       $string = str_replace($match[0], $resolved, $string);
     }
 

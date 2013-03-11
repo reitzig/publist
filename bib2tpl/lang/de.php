@@ -2,13 +2,26 @@
 $translations = array(
   // groupkey if no grouping is done
   'all' => 'Alle',
-  // Month names entries are compared against for sorting issues
-  'months' => array('01' => 'januar', '02' => 'februar',
-                    '03' => 'märz', '04' => 'april',
-                    '05' => 'mai', '06' => 'juni',
-                    '07' => 'juli', '08' => 'august',
-                    '09' => 'september', '10' => 'oktober', 
-                    '11' => 'november', '12' => 'dezember'),
+  // groupkey for entries that do not specify the grouping value
+  'rest' => 'Rest',
+  // Month names entries are compared against for sorting issues.
+  // - Names are case insensitive
+  // - Regular expression are supported to include alternatives like
+  //   'january|jan'
+  // - In translations, keep English names and short forms in case bibtex
+  //   source is in English. E.g. 'enero|ene|january|jan'
+  'months' => array('01' => 'januar|january|jan',
+                    '02' => 'februar|february|feb',
+                    '03' => 'märz|mär|march|mar',
+                    '04' => 'april|apr',
+                    '05' => 'mai|may',
+                    '06' => 'juni|june|jun',
+                    '07' => 'juli|july|jul',
+                    '08' => 'august|aug',
+                    '09' => 'september|sep',
+                    '10' => 'oktober|okt|octuber|oct',
+                    '11' => 'november|nov',
+                    '12' => 'dezember|dez|december|dec'),
 
   // Representations of entry types used as headlines
   'entrytypes' => array('article'       => 'Artikel',
@@ -23,7 +36,7 @@ $translations = array(
                         'misc'          => 'Verschiedenes',
                         'phdthesis'     => 'Dissertationen',
                         'proceedings'   => 'Berichte',
-                        'techreport'    => 'Technischer Bericht',
+                        'techreport'    => 'Technische Berichte',
                         'unpublished'   => 'Unveröffentlicht',
 
                         // Map non-standard types to this type

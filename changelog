@@ -1,0 +1,16 @@
+version: 1.0
+date: 2013-03-12
+
+  * bib2tpl updated to v2 with additional modifications (see changelog in
+    bib2tpl folder).
+  * Included simple (optional) TeX to utf8 sanitiser in syntax.php.
+  * Included Spanish (es) language file.
+  * "handle" function (syntax.php) parser code corrections. "only" option
+    not correctly parsed when using a single condition. E.g. "only:a=b" would
+    yield 'only' => 'a=b' instead of 'only' => ['a' => 'b'].
+  * Language option: set default from "translation" plugin (if installed &
+    enabled) or global language configuration. "lang:xx" option is not needed
+    now in most cases.
+  * Added/updated administrative files: COPYING, etc.
+    
+ -- Jorge Juan <jjchico@gmail.com>

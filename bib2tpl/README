@@ -1,0 +1,14 @@
+bib2tpl converts the famous bibliographic data format BibTeX into whatever you want.
+
+This version of bib2tpl is based on bib2tpl version 2.0 [1] with additional
+features to be used with publist dokuwiki's plugin [2]. See the changelog file
+for details.
+
+[1] http://lmazy.verrech.net/bib2tpl/
+[2] https://www.dokuwiki.org/plugin:publist
+
+----
+Copyright (C) 2012 Raphael Reitzig <code@verrech.net> (version 2.0)
+Copyright (C) 2013 Jorge Juan <jjchico@gmail.com> (these modifications)
+
+See COPYING and/or file headers for license info.
