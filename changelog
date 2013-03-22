@@ -1,3 +1,13 @@
+version: 1.1
+date: 2013-03-22
+
+  * minor bugfixes for
+  * added a new optional parameter "authors", which allows linking to websites of
+    co-authors by creating an additional file/wiki page with "URL Author Name" 
+    entries
+  
+ -- Karl Moritz Hermann <mail@karlmoritz.com>
+
 version: 1.0
 date: 2013-03-12
 
