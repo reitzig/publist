@@ -78,7 +78,11 @@ class BibtexConverter {
    */
   private $helper;
 
-
+  /**
+   * Array with author names and replacement.
+   * @access private
+   * @var assoc. array
+   */
   private $authorlist;
 
   /**
@@ -210,7 +214,6 @@ class BibtexConverter {
     $data   = $this->filter($data, $replacementKeys);
     $data   = $this->group($data);
     $data   = $this->sort($data);
-    $data   = $this->authorlink($data);
     $result = $this->translate($data, $template);
 
     /* If grouping was disabled because of the template, restore the former
@@ -548,7 +551,6 @@ class BibtexConverter {
    *
    * @access private
    * @param string data Formatted author line without links.
-   *                    
    * @return string data Formatted author line with links.
    */
   private function authorlink($data) {
