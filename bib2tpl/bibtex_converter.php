@@ -439,9 +439,14 @@ class BibtexConverter {
       if ( $key === 'author' ) {
         $value = $entry['niceauthor'];
       }
-
-      $patterns []= '/@'.$key.'@/';
-      $replacements []= call_user_func($this->sanitise, $value);
+      if ( $key == 'bibtex' ) {
+        $patterns []= '/@'.$key.'@/';
+        $replacements []= $value;
+      }
+      else {
+        $patterns []= '/@'.$key.'@/';
+        $replacements []= call_user_func($this->sanitise, $value);
+      }
     }
 
     return preg_replace($patterns, $replacements, $result);

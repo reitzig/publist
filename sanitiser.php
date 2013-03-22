@@ -13,6 +13,8 @@
 
 $sanitiser = function ($inputstr) {
     $search_array = array(
+        '\$', '\&', '\%', '\#', '\_', '\{', '\}',   // specials
+        '{', '}',                                   // emphasizers
         "\'a", "\'e", "\'i", "\'o", "\'u",		// acute
         "\'A", "\'E", "\'I", "\'O", "\'U",
         '\`a', '\`e', '\`i', '\`o', '\`u',		// grave
@@ -24,10 +26,11 @@ $sanitiser = function ($inputstr) {
         '\~n',						// tilde
         '\~N',
         '\cc', '\cC',
-        '\$', '\&', '\%', '\#', '\_', '\{', '\}',	// specials
-        '~', '\,', '\\'					// space
+        '~', '\,', '\\'				        // space
     );					
     $replace_array = array(
+        '$', '&', '%', '#', '_', '<html>&#123;</html>', '<html>&#125;</html>',
+        '','',
         'á', 'é', 'í', 'ó', 'ú',
         'Á', 'É', 'Í', 'Ó', 'Ú',
         'à', 'è', 'ì', 'ò', 'ù',
@@ -39,7 +42,6 @@ $sanitiser = function ($inputstr) {
         'ñ',
         'Ñ',
         'ç', 'Ç',
-        '$', '&', '%', '#', '_', '{', '}',
         "\xC2\xA0", ' ', ' '
     );
     $outputstr = str_replace($search_array, $replace_array, $inputstr);
