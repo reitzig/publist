@@ -37,7 +37,7 @@ class syntax_plugin_publist extends DokuWiki_Syntax_Plugin {
 
         // Partition properly 
         $matches = array();
-        $pattern = '/\[publist(?:\|(page|file):(.+?))(?:\|(wiki|html):(page|file):(.+?))(?:\|(.+?(?:\|.+?)*))?\]/';
+        $pattern = '/\[publist(?:\|(page|file|url):(.+?))(?:\|(wiki|html):(page|file|url):(.+?))(?:\|(.+?(?:\|.+?)*))?\]/';
         if ( 0 === preg_match($pattern, $match, $matches) ) {
             $data['error'] = 'Not valid publist syntax: '.$match;
         }
@@ -146,6 +146,9 @@ class syntax_plugin_publist extends DokuWiki_Syntax_Plugin {
     function _load($data, $kind) {
         global $INFO;
 
+        if ( $data[$kind]['type'] == 'url' ) {
+            return file_get_contents($data[$kind]['ref']);
+        }
         if ( $data[$kind]['type'] == 'file' ) {
             return file_get_contents(dirname(__FILE__).'/'.$kind.'/'.$data[$kind]['ref']);
         }
