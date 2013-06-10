@@ -453,6 +453,7 @@ class BibtexConverter {
     foreach ( $entry as $key => $value ) {
       if ( $key === 'author' ) {
         $value = $entry['niceauthor'];
+        $value = $this->authorlink($value);
       }
       if ( $key == 'bibtex') {
         $patterns []= '/@'.$key.'@/';
@@ -461,9 +462,6 @@ class BibtexConverter {
       else {
         $patterns []= '/@'.$key.'@/';
         $replacements []= call_user_func($this->sanitise, $value);
-      }
-      if ( $key === 'author' ) {
-        $replacements = $this->authorlink($replacements);
       }
     }
 
