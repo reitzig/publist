@@ -35,7 +35,7 @@ class syntax_plugin_publist extends DokuWiki_Syntax_Plugin {
     function handle($match, $state, $pos, &$handler){
         $data = array();
 
-        // Partition properly 
+        // Partition properly
         $matches = array();
         $pattern = '/\[publist(?:\|(page|file|url):(.+?))(?:\|(wiki|html):(page|file|url):(.+?))(?:\|(.+?(?:\|.+?)*))?\]/';
         if ( 0 === preg_match($pattern, $match, $matches) ) {
@@ -46,7 +46,7 @@ class syntax_plugin_publist extends DokuWiki_Syntax_Plugin {
             $data['template'] = array('target' => $matches[3], 'type' => $matches[4], 'ref' => $matches[5]);
             $data['options'] = array();
 
-      
+
             // Set default language. Get current lang from translation plugin
             // if installed & enabled or fall back to default lang in conf.
             if (!plugin_isdisabled('translation')) {
@@ -58,7 +58,7 @@ class syntax_plugin_publist extends DokuWiki_Syntax_Plugin {
                 $mylang = $conf['lang'];
             }
             $data['options']['lang'] = $mylang;
-            
+
             if ( !empty($matches[6]) ) {
                $matches = explode('|', $matches[6]);
                foreach ( $matches as $opt ) {
@@ -91,14 +91,14 @@ class syntax_plugin_publist extends DokuWiki_Syntax_Plugin {
 
     function render($mode, &$renderer, $data) {
         if($mode != 'xhtml') return false;
- 
+
         if ( empty($data['error']) ) {
             // Retrieve BibTeX source
             $bibtex = $this->_load($data, 'bibtex');
             if ( empty($bibtex) ) {
                 $data['error'] .= $data['bibtex']['type'].' '.$data['bibtex']['ref'].' does not exist<br />';
             }
-            
+
             // Retrieve Template source
             $template = $this->_load($data, 'template');
             if ( empty($template) ) {
@@ -125,7 +125,7 @@ class syntax_plugin_publist extends DokuWiki_Syntax_Plugin {
                 }
                 $parser = new BibtexConverter($data['options'],$sanitiser,$authors);
                 $code = $parser->convert($bibtex, $template);
-                
+
                 if ( $data['template']['target'] == 'wiki' ) {
                     $code = p_render($mode, p_get_instructions($code), $info);
                 }
@@ -133,7 +133,7 @@ class syntax_plugin_publist extends DokuWiki_Syntax_Plugin {
                 $renderer->doc .= $code;
             }
         }
-        
+
         if ( !empty($data['error']) ) {
             $renderer->doc .= $data['error'];
         }
@@ -155,7 +155,7 @@ class syntax_plugin_publist extends DokuWiki_Syntax_Plugin {
         else if ( $data[$kind]['type'] == 'page' ) {
             $exists = false;
             $id = $data[$kind]['ref'];
-            resolve_pageid($INFO['namespace'], &$id, &$exists);
+            resolve_pageid($INFO['namespace'], $id, $exists);
             if ( $exists ) {
                 return rawWiki($id);
             }
