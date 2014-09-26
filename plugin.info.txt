@@ -1,7 +1,7 @@
-base   publist
-author Raphael Reitzig, Jorge Juan
+base   publistx
+author Raphael Reitzig, Jorge Juan, Karl Moritz Hermann
 email  jjchico@gmail.com
-date   2013-03-12
-name   publist plugin
-desc   Includes the content of BibTeX files in DokuWiki pages in a flexible way.
-url    http://www.dokuwiki.org/plugin:publist
+date   2014-09-26
+name   publistX plugin
+desc   Simple modification of original publist plugin
+url    http://www.dokuwiki.org/plugin:publistx
