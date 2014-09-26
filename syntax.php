@@ -82,7 +82,7 @@ class syntax_plugin_publist extends DokuWiki_Syntax_Plugin {
 
             if ($data['options']['authors'])
             {
-              $tmp = explode(':', $data['options']['authors']);
+              $tmp = explode(':', $data['options']['authors'],2);
               $data['authors'] = array('type' => $tmp[0], 'ref' => $tmp[1]);
             }
         }
